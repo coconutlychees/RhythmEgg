@@ -3,16 +3,34 @@ using UnityEngine.SceneManagement;
 
 public class PlayerController : MonoBehaviour {
 
+    [System.Serializable]
+    public struct AnimationArray
+    {
+        public Direction direction;
+        public Sprite[] sprites;
+    }
+
+    public AnimationArray[] playerAnimations = new AnimationArray[4];
     public float songBPM;
     public float speedMultiplier = 1;
     public float predelay;
     public SpriteRenderer[] arrows; //0 = Left, 1 = Up, 2 = Right, 3 = Down
     public enum Direction { Left, Up, Right, Down }
     public Direction[] directions;
+    public Direction playerDirection;
     [HideInInspector] public int currentPosition;
 
-    private int activeDirection;
-    private float timer;
+    protected int activeDirection;
+    protected int animationNumber = 0;
+    protected float timer;
+    protected float animationTimer;
+    protected SpriteRenderer m_Renderer;
+
+    private void Start()
+    {
+        m_Renderer = GetComponent<SpriteRenderer>();
+        animationTimer += songBPM / 240;
+    }
 
     private void Update()
     {
@@ -26,12 +44,19 @@ public class PlayerController : MonoBehaviour {
             activeDirection = (activeDirection + 1) % 4;
             ArrowUpdate();
         }
+        Move();
+        Animate();
+    }
+
+    protected virtual void Move()
+    {
         if (Input.GetKeyDown(KeyCode.Space))
         {
             if (activeDirection == (int)directions[currentPosition])
             {
                 activeDirection = (activeDirection + 1) % 4;
                 ArrowUpdate();
+                playerDirection = directions[currentPosition];
                 switch (directions[currentPosition])
                 {
                     case Direction.Down:
@@ -56,7 +81,30 @@ public class PlayerController : MonoBehaviour {
         }
     }
 
-    private void ArrowUpdate()
+    private void Animate()
+    {
+        if (Time.time >= animationTimer)
+        {
+            animationTimer += songBPM / 240;
+            animationNumber = (animationNumber + 1) % 4;
+        }
+        m_Renderer.flipX = playerDirection == Direction.Left;
+        m_Renderer.sprite = GetAnimationArray(playerDirection).sprites[animationNumber];
+    }
+
+    private AnimationArray GetAnimationArray(Direction dir)
+    {
+        for (int i = 0; i < playerAnimations.Length; i++)
+        {
+            if (playerAnimations[i].direction == dir)
+            {
+                return playerAnimations[i];
+            }
+        }
+        return new AnimationArray();
+    }
+
+    protected void ArrowUpdate()
     {
         for (int i = 0; i < arrows.Length; i++)
         {
